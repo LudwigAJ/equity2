@@ -1,5 +1,11 @@
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 import flask
-from dash import Dash, html, dcc, callback, Output, Input
+from dash import Dash, html, dcc, callback, Output, Input, dash_table
+import dash_bootstrap_components as dbc
+
 import plotly.express as px
 import pandas as pd
 
@@ -7,27 +13,46 @@ server = flask.Flask(__name__)
 
 app = Dash(
     __name__, 
-    server=server
+    server=server,
+    external_stylesheets=[dbc.themes.CYBORG],
+    suppress_callback_exceptions=True
 )
 
 ## IP = 158.220.82.151
 
-df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
+import nasdaq_constit
 
-app.layout = html.Div([
-    html.H1(children='Title of Dash App', style={'textAlign':'center'}),
-    dcc.Dropdown(df.country.unique(), 'Canada', id='dropdown-selection'),
-    dcc.Graph(id='graph-content')
-])
-
-@callback(
-    Output('graph-content', 'figure'),
-    Input('dropdown-selection', 'value')
+app.layout = html.Div(
+    children=[
+        dbc.Tabs(
+            [
+                dbc.Tab(label="Home", tab_id="home"),
+                dbc.Tab(label="Nasdaq100 Constituents", tab_id="nasdaq100-constit"),
+            ],
+            id="tabs-selection",
+            active_tab="home",
+        ),
+        html.H4('Hello there !'),
+        html.Div(id="tabs-selection-content"),
+    ],
+    className='dbc'
 )
 
-def update_graph(value):
-    dff = df[df.country==value]
-    return px.line(dff, x='year', y='pop')
+@callback(
+    Output('tabs-selection-content', 'children'),
+    [
+        Input('tabs-selection', 'active_tab')
+    ]
+)
+def render(tab):
+    logger.debug(tab)
+
+    if tab == 'home':
+        return html.H4('Welcome')
+    elif tab == 'nasdaq100-constit':
+        return nasdaq_constit.render()
+    else:
+        raise ValueError()
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)
